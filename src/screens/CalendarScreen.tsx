@@ -7,6 +7,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -21,12 +23,13 @@ import {
   subMonths,
   startOfWeek,
   endOfWeek,
+  parseISO,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
-import { NavigationParamList, Period } from '../types';
-import { getPeriods, getUserProfile } from '../services/storage';
+import { NavigationParamList, Period, DailyLog } from '../types';
+import { getPeriods, getUserProfile, getDailyLogs } from '../services/storage';
 import {
   getPhaseForDate,
   calculateAverageCycleLength,
@@ -42,16 +45,21 @@ const CalendarScreen: React.FC = () => {
   const navigation = useNavigation<CalendarNavigationProp>();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [periods, setPeriods] = useState<Period[]>([]);
+  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [averageCycleLength, setAverageCycleLength] = useState(28);
   const [averagePeriodLength, setAveragePeriodLength] = useState(5);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const loadData = async () => {
     try {
       const storedPeriods = await getPeriods();
       const profile = await getUserProfile();
+      const logs = await getDailyLogs();
 
       setPeriods(storedPeriods);
+      setDailyLogs(logs);
 
       const avgCycle = profile?.averageCycleLength || calculateAverageCycleLength(storedPeriods);
       const avgPeriod = profile?.averagePeriodLength || calculateAveragePeriodLength(storedPeriods);
@@ -90,6 +98,11 @@ const CalendarScreen: React.FC = () => {
     }
   };
 
+  const hasLogForDate = (date: Date): boolean => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return dailyLogs.some(log => log.date === dateStr);
+  };
+
   const handleDatePress = (date: Date) => {
     setSelectedDate(date);
     navigation.navigate('DayDetails', { date: format(date, 'yyyy-MM-dd') });
@@ -99,6 +112,7 @@ const CalendarScreen: React.FC = () => {
     const isCurrentMonth = isSameMonth(date, currentMonth);
     const isToday = isSameDay(date, new Date());
     const color = getColorForDate(date);
+    const hasLog = hasLogForDate(date);
 
     return (
       <TouchableOpacity
@@ -127,8 +141,30 @@ const CalendarScreen: React.FC = () => {
             {format(date, 'd')}
           </Text>
         </View>
+        {hasLog && (
+          <View style={styles.logIndicator}>
+            <View style={styles.logDot} />
+          </View>
+        )}
       </TouchableOpacity>
     );
+  };
+
+  const handleSearch = () => {
+    if (!searchText.trim()) return;
+
+    // Search in notes from daily logs
+    const results = dailyLogs.filter(log =>
+      log.notes?.toLowerCase().includes(searchText.toLowerCase())
+    );
+
+    if (results.length > 0) {
+      const firstResult = results[0];
+      const date = parseISO(firstResult.date);
+      setCurrentMonth(date);
+      setSearchVisible(false);
+      setSearchText('');
+    }
   };
 
   return (
@@ -138,11 +174,17 @@ const CalendarScreen: React.FC = () => {
         <View style={styles.header}>
           <Text style={styles.title}>Calendario</Text>
           <View style={styles.headerButtons}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => setSearchVisible(true)}
+            >
               <Ionicons name="search" size={24} color={COLORS.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="ellipsis-horizontal" size={24} color={COLORS.text} />
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => setCurrentMonth(new Date())}
+            >
+              <Ionicons name="today" size={24} color={COLORS.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -219,6 +261,50 @@ const CalendarScreen: React.FC = () => {
       >
         <Ionicons name="add" size={32} color={COLORS.white} />
       </TouchableOpacity>
+
+      {/* Search Modal */}
+      <Modal
+        visible={searchVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSearchVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSearchVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.searchModal}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.searchHeader}>
+              <Text style={styles.searchTitle}>Buscar notas</Text>
+              <TouchableOpacity onPress={() => setSearchVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color={COLORS.textLight} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar en notas..."
+                value={searchText}
+                onChangeText={setSearchText}
+                onSubmitEditing={handleSearch}
+                autoFocus
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.searchButton}
+              onPress={handleSearch}
+            >
+              <Text style={styles.searchButtonText}>Buscar</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -379,6 +465,66 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  logIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    alignSelf: 'center',
+  },
+  logDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.symptomsColor,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchModal: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    width: width - SPACING.xl * 2,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  searchTitle: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundPink,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+  },
+  searchButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+  },
+  searchButtonText: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });
 

@@ -43,11 +43,13 @@ const HomeScreen: React.FC = () => {
   const [activePeriod, setActivePeriod] = useState<Period | null>(null);
   const [userName, setUserName] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   const loadData = async () => {
     try {
       const storedPeriods = await getPeriods();
       const profile = await getUserProfile();
+      const dailyLogs = await getDailyLogs();
 
       setPeriods(storedPeriods);
 
@@ -72,6 +74,12 @@ const HomeScreen: React.FC = () => {
       setDaysUntilOvulation(daysUntilOv);
       setInFertileWindow(fertile);
       setActivePeriod(active);
+
+      // Get recent logs (last 3)
+      const sortedLogs = dailyLogs
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 3);
+      setRecentLogs(sortedLogs);
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -246,11 +254,63 @@ const HomeScreen: React.FC = () => {
         {/* Quick Log Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Registro Rápido</Text>
-            <TouchableOpacity>
+            <Text style={styles.sectionTitle}>Registros Recientes</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Calendar')}>
               <Text style={styles.seeAll}>Ver todo</Text>
             </TouchableOpacity>
           </View>
+
+          {recentLogs.length === 0 ? (
+            <Card style={{ marginTop: SPACING.md }}>
+              <Text style={styles.emptyText}>No hay registros aún. Registra tu humor o síntomas.</Text>
+            </Card>
+          ) : (
+            recentLogs.map((log) => (
+              <TouchableOpacity
+                key={log.date}
+                onPress={() => navigation.navigate('DayDetails', { date: log.date })}
+              >
+                <Card style={styles.logCard}>
+                  <View style={styles.logHeader}>
+                    <Text style={styles.logDate}>
+                      {format(new Date(log.date), "d 'de' MMMM", { locale: es })}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+                  </View>
+                  <View style={styles.logContent}>
+                    {log.mood && (
+                      <View style={styles.logItem}>
+                        <Ionicons name="happy-outline" size={16} color={COLORS.primary} />
+                        <Text style={styles.logItemText}>
+                          {log.mood === 'happy' ? 'Feliz' :
+                           log.mood === 'sad' ? 'Triste' :
+                           log.mood === 'anxious' ? 'Ansiosa' :
+                           log.mood === 'calm' ? 'Tranquila' :
+                           log.mood === 'angry' ? 'Enojada' :
+                           log.mood === 'confused' ? 'Confundida' :
+                           log.mood === 'sleepy' ? 'Somnolienta' : 'Distraída'}
+                        </Text>
+                      </View>
+                    )}
+                    {log.flow && (
+                      <View style={styles.logItem}>
+                        <Ionicons name="water" size={16} color={COLORS.primary} />
+                        <Text style={styles.logItemText}>
+                          Flujo {log.flow === 'light' ? 'ligero' : log.flow === 'medium' ? 'normal' : 'abundante'}
+                        </Text>
+                      </View>
+                    )}
+                    {log.symptoms && log.symptoms.length > 0 && (
+                      <View style={styles.logItem}>
+                        <Ionicons name="fitness-outline" size={16} color={COLORS.primary} />
+                        <Text style={styles.logItemText}>{log.symptoms.length} síntomas</Text>
+                      </View>
+                    )}
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* Add Period Button */}
@@ -445,6 +505,44 @@ const styles = StyleSheet.create({
   addButton: {
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.lg,
+  },
+  emptyText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingVertical: SPACING.lg,
+  },
+  logCard: {
+    marginTop: SPACING.md,
+  },
+  logHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  logDate: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  logContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  logItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.backgroundPink,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  logItemText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
   },
 });
 

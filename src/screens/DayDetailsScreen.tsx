@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { format } from 'date-fns';
@@ -29,6 +30,7 @@ const DayDetailsScreen: React.FC = () => {
   const [flow, setFlow] = useState<DailyLog['flow']>();
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [sexualActivity, setSexualActivity] = useState(false);
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ const DayDetailsScreen: React.FC = () => {
       setFlow(log.flow);
       setSelectedSymptoms(log.symptoms || []);
       setSexualActivity(log.sexualActivity || false);
+      setNotes(log.notes || '');
     }
   };
 
@@ -54,6 +57,7 @@ const DayDetailsScreen: React.FC = () => {
         flow,
         symptoms: selectedSymptoms,
         sexualActivity,
+        notes: notes.trim() || undefined,
       };
       await addDailyLog(log);
       Alert.alert('Éxito', 'Datos guardados correctamente');
@@ -209,6 +213,20 @@ const DayDetailsScreen: React.FC = () => {
           </TouchableOpacity>
         </Card>
 
+        {/* Notes Section */}
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Notas</Text>
+          <TextInput
+            style={styles.notesInput}
+            placeholder="Escribe cualquier nota adicional sobre este día..."
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </Card>
+
         <Button
           title="Guardar"
           onPress={handleSave}
@@ -347,6 +365,14 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: SPACING.lg,
+  },
+  notesInput: {
+    backgroundColor: COLORS.backgroundPink,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+    minHeight: 100,
   },
 });
 
