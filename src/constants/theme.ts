@@ -1,5 +1,8 @@
 import { COLORS } from './colors';
 
+// Re-export COLORS for convenience
+export { COLORS };
+
 export const FONTS = {
   regular: 'System',
   medium: 'System',

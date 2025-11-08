@@ -4,7 +4,7 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { COLORS } from './src/constants/colors';
 import { isOnboardingCompleted } from './src/services/storage';
-import { initializeAds } from './src/services/adsManager';
+// import { initializeAds } from './src/services/adsManager'; // Commented out - AdMob not yet configured
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -17,7 +17,7 @@ export default function App() {
   const prepareApp = async () => {
     try {
       // Initialize ads
-      await initializeAds();
+      // await initializeAds(); // Commented out - AdMob not yet configured
 
       // Check if onboarding is completed
       const completed = await isOnboardingCompleted();

@@ -1,37 +1,42 @@
-import mobileAds, {
-  MaxAdContentRating,
-  BannerAd,
-  BannerAdSize,
-  TestIds,
-} from 'react-native-google-mobile-ads';
+/**
+ * AdMob Configuration - Currently Disabled
+ *
+ * To enable AdMob:
+ * 1. Install: npx expo install react-native-google-mobile-ads
+ * 2. Configure app.json with AdMob plugin
+ * 3. Uncomment the code below
+ * 4. Replace test IDs with your real AdMob IDs
+ */
+
+// import mobileAds, {
+//   MaxAdContentRating,
+//   BannerAd,
+//   BannerAdSize,
+//   TestIds,
+// } from 'react-native-google-mobile-ads';
 
 // Initialize Google Mobile Ads
 export const initializeAds = async () => {
-  try {
-    await mobileAds().initialize();
-
-    // Configure ads for compliance with Google Play policies
-    await mobileAds().setRequestConfiguration({
-      // Set max ad content rating to ensure appropriate ads
-      maxAdContentRating: MaxAdContentRating.G,
-      // Tag for child-directed treatment (COPPA compliance)
-      tagForChildDirectedTreatment: false,
-      // Tag for under age of consent
-      tagForUnderAgeOfConsent: false,
-    });
-
-    console.log('Google Mobile Ads initialized');
-  } catch (error) {
-    console.error('Error initializing ads:', error);
-  }
+  console.log('Ads disabled - Install react-native-google-mobile-ads to enable');
+  // try {
+  //   await mobileAds().initialize();
+  //   await mobileAds().setRequestConfiguration({
+  //     maxAdContentRating: MaxAdContentRating.G,
+  //     tagForChildDirectedTreatment: false,
+  //     tagForUnderAgeOfConsent: false,
+  //   });
+  //   console.log('Google Mobile Ads initialized');
+  // } catch (error) {
+  //   console.error('Error initializing ads:', error);
+  // }
 };
 
 // Ad Unit IDs - Using test IDs for development
 // IMPORTANT: Replace with your actual Ad Unit IDs before publishing
 export const AD_UNIT_IDS = {
   // Test IDs provided by Google
-  BANNER: __DEV__ ? TestIds.BANNER : 'ca-app-pub-xxxxxxxxxxxxx/yyyyyyyyyyyyyy',
-  INTERSTITIAL: __DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-xxxxxxxxxxxxx/yyyyyyyyyyyyyy',
+  BANNER: 'ca-app-pub-3940256099942544/6300978111',
+  INTERSTITIAL: 'ca-app-pub-3940256099942544/1033173712',
 };
 
 /**
